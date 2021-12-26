@@ -1,0 +1,88 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: registry
+  namespace: registry
+  labels:
+    app: registry
+spec:
+  selector:
+    matchLabels:
+      app: registry
+  template:
+    metadata:
+      labels:
+        app: registry
+    spec:
+      volumes:
+      - name: auth
+        emptyDir:
+          medium: Memory
+      - name: config
+        secret:
+          secretName: registry
+          items:
+          - key: config.yml
+            path: config.yml
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Equal
+      initContainers:
+      - name: httpd
+        image: httpd:2
+        command: 
+          - "/bin/sh"
+          - "-c"
+          - "htpasswd -Bbn ${REGISTRY_USERNAME} ${REGISTRY_PASSWORD} > /auth/htpasswd"
+        env:
+        - name: REGISTRY_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: registry-auth
+              key: username
+        - name: REGISTRY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: registry-auth
+              key: password
+        volumeMounts:
+        - name: auth
+          mountPath: /auth
+        - name: config
+          mountPath: /registry/config.yml
+          subPath: config.yml
+      containers:
+      - name: registry
+        image: registry:2
+        imagePullPolicy: Always
+        args:
+          - /registry/config.yml
+        ports:
+        - name: http
+          containerPort: 5000
+        volumeMounts:
+        - name: auth
+          mountPath: /auth
+        - name: config
+          mountPath: /registry/config.yml
+          subPath: config.yml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: registry
+  name: registry
+  namespace: registry
+spec:
+  ports:
+    - name: http
+      port: 5000
+      protocol: TCP
+      targetPort: http
+  selector:
+    app: registry

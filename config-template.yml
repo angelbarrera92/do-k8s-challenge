@@ -1,0 +1,30 @@
+---
+version: 0.1
+log:
+  level: debug
+  formatter: text
+  fields:
+    service: registry
+loglevel: debug
+storage:
+  redirect:
+    disable: true
+  s3:
+    accesskey: <YOUR_ACCESS_KEY>
+    secretkey: <YOUR_SECRET_KEY>
+    region: <YOUR_REGION>
+    regionendpoint: <YOUR_REGION_ENDPOINT>
+    bucket: <YOUR_BUCKET>
+http:
+  addr: :5000
+  # cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 32 | head -n 1
+  secret: <RANDOM_SECRET_GOES_HERE>
+  headers:
+    X-Content-Type-Options: [nosniff]
+  http2:
+    disabled: false
+  host: https://<YOUR_TUNNEL>.tunnels.o.barrera.dev
+auth:
+  htpasswd:
+    realm: basic-realm
+    path: /auth/htpasswd
